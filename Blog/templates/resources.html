@@ -1,0 +1,26 @@
+{% extends "layout.html" %} {% block content %}
+<div class="content-section">
+    <h2 class="article-metadata">Uploaded any file if you want.</h2>
+<form method="POST" action="/upload" enctype="multipart/form-data">
+    <label for="inputFile"></label>
+    <input type="file" name="inputFile">
+    <button type="submit" class="btn btn-primary">submit</button>
+</form>
+</div>
+<div class="content-section">
+{% for file in files %}
+<article class="media content-section padding-top">
+    <div class="media-body">
+        <div class="article-metadata">
+            <img class="rounded-circle article-img" src="{{ url_for('static',filename='profile_pics/' + file.author.image_path) }}">
+            <a class="mr-2 lg" href="#">{{ file.author.username }}</a>
+            <small class="text-muted">{{ file.date_uploaded.strftime('%Y-%m-%d %H:%M') }}</small>
+        </div>
+        <h2><div class="article-title">{{ file.name }}</div></h2>
+        <a class="article-content" href="{{url_for('download',file_id=file.id)}}">download link</a>
+    </div>
+</article>
+{% endfor %}
+</div>
+
+{% endblock content %}
