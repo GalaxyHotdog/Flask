@@ -309,3 +309,10 @@ def list_following():
     #Post.query.outerjoin(PostLike).group_by(Post.id).filter(Post.date_posted > ten_weeks_ago).order_by(db.func.count(PostLike.id).desc(), Post.date_posted.desc()).limit(5).all()
     following = User.query.join(Following, User.id==Following.following_id).filter(Following.user_id==current_user.id).all()
     return render_template('following.html', follows=following)
+
+
+@app.route('/post-<int:user_id>')
+def user_post(user_id):
+    user = User.query.get(user_id)
+    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).all()
+    return render_template('userpost.html',posts=posts)
