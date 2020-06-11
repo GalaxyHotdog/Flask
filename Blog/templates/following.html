@@ -4,7 +4,7 @@
     <div class="media-body">
         <div class="article-metadata">
             <img class="rounded-circle article-img" src="{{ url_for('static',filename='profile_pics/' + follow.image_path) }}">
-            <a class="mr-2 lg" href="#">{{ follow.username }}</a>
+            <a class="mr-2 lg" href="{{ url_for('user_post',username=follow.username) }}">{{ follow.username }}</a>
         </div>
     </div>
 </article>

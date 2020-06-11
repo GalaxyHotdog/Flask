@@ -1,5 +1,6 @@
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
-from Blog import db, login_manager
+from Blog import db, login_manager, app
 from flask_login import UserMixin
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -51,6 +52,19 @@ class User(db.Model, UserMixin):
         return Following.query.filter(
             Following.user_id == self.id,
             Following.following_id == user.id).count() > 0
+
+    def get_reset_token(self, expires_sec=1800):
+        s = Serializer(app.config['SECRET_KEY'], expires_sec)
+        return s.dumps({'user_id': self.id}).decode('utf-8')
+
+    @staticmethod    
+    def verify_reset_token(token):
+        s = Serializer(app.config['SECRET_KEY'])
+        try:
+            user_id = s.loads(token)['user_id']
+        except:
+            return None
+        return User.query.get(user_id)
 
     def __repr__(self):
         return f"User('{self.email}','{self.username}')"

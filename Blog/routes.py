@@ -1,6 +1,6 @@
 from flask import render_template, url_for, redirect, flash, request, abort, send_file
 from Blog.models import User, Post, Comment, FileContents, PostLike, Following
-from Blog.forms import RegisterForm, LoginForm, UpdateAccountForm, PostForm, CommentForm, SearchForm, ChangePasswordForm
+from Blog.forms import RegisterForm, LoginForm, UpdateAccountForm, PostForm, CommentForm, SearchForm, ChangePasswordForm, RequestResetForm, ResetPasswordForm
 from Blog import app, db, bcrypt
 from flask_login import login_user, logout_user, current_user, login_required
 import secrets
@@ -13,11 +13,23 @@ from datetime import datetime, timedelta
 @app.route("/")
 @app.route("/home")
 def home():
+    page = request.args.get('page', 1, type=int)
+    posts_all = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5)
     current_time = datetime.utcnow()
     ten_weeks_ago = current_time - timedelta(days=7)
     posts = Post.query.outerjoin(PostLike).group_by(Post.id).filter(Post.date_posted > ten_weeks_ago).order_by(db.func.count(PostLike.id).desc(), Post.date_posted.desc()).limit(5).all()
-    posts_all = Post.query.order_by(Post.date_posted.desc()).all()
-    return render_template('home.html', posts=posts, posts_all=posts_all)
+    
+    return render_template('home.html', posts=posts,posts_all=posts_all)
+
+@app.route("/allpost")
+def all_post():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5)
+    # current_time = datetime.utcnow()
+    # ten_weeks_ago = current_time - timedelta(days=7)
+    # posts = Post.query.outerjoin(PostLike).group_by(Post.id).filter(Post.date_posted > ten_weeks_ago).order_by(db.func.count(PostLike.id).desc(), Post.date_posted.desc()).limit(5).all()
+    
+    return render_template('allpost.html', posts=posts)
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
@@ -311,8 +323,39 @@ def list_following():
     return render_template('following.html', follows=following)
 
 
-@app.route('/post-<int:user_id>')
-def user_post(user_id):
-    user = User.query.get(user_id)
-    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).all()
-    return render_template('userpost.html',posts=posts)
+@app.route('/post-<string:username>')
+def user_post(username):
+    page = request.args.get('page', 1, type=int)
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(author=user)\
+        .order_by(Post.date_posted.desc())\
+        .paginate(page=page, per_page=5)
+    return render_template('user_post.html', posts=posts, user=user)
+
+def send_reset_email(user):
+    pass
+
+@app.route("/reset_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RequestResetForm()
+    if form.validate_on_submit():
+        user = User.qeury.filter_by(email=form.email.data).first()
+        send_reset_email(user)
+        flash('Reset password email sent.', 'info')
+        return redirect(url_for('login'))
+    return render_template("reset_request.html", title="Request Reset Password", form=form)
+
+
+@app.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    user = user.verify_reset_token(token)
+    if not user:
+        flash('Expired Token.', 'warning')
+        return redirect(url_for('reset_request'))
+    form = ResetPasswordForm()
+    return render_template("reset_token.html", title="Reset Password", form=form)
+   
